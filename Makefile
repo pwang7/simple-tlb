@@ -4,15 +4,18 @@ VLOGDIR = generated
 OUTPUTDIR = output
 ONLYSYNTH = 0
 CLK = main_clock
-
+PARTNAME = xcvu13p-fhgb2104-2-i
 TARGETFILE ?= $(SRCDIR)/TLB.bsv
 TOPMODULE ?= mkTLB
 export TOP = $(TOPMODULE)
 export RTL = $(VLOGDIR)
 export XDC = $(SRCDIR)
+export IPS = $(SRCDIR)
 export OUTPUT = $(OUTPUTDIR)
 export SYNTHONLY = $(ONLYSYNTH)
 export CLOCKS = $(CLK)
+export PART = $(PARTNAME)
+
 
 TRANSFLAGS = -aggressive-conditions # -lift -split-if
 RECOMPILEFLAGS = -u -show-compiles
@@ -56,10 +59,10 @@ verilog: link
 	bluetcl listVlogFiles.tcl -bdir $(BUILDDIR) -vdir $(BUILDDIR) $(TOPMODULE) $(TOPMODULE) | grep -i '\.v' | xargs -I {} cp {} $(VLOGDIR)
 
 vivado: verilog
-	vivado -mode batch -source non_project_build.tcl 2>&1 | tee ./run.log
+	vivado -mode batch -notrace -nolog -nojournal -source non_project_build.tcl 2>&1 | tee ./run.log
 
 clean:
-	rm -rf $(BUILDDIR) $(VLOGDIR) $(OUTPUTDIR) .Xil *.jou *.log
+	rm -rf $(BUILDDIR) $(VLOGDIR) $(OUTPUTDIR) .Xil *.jou *.log *.str
 
 .PHONY: compile link simulate clean vivado
 .DEFAULT_GOAL := vivado
