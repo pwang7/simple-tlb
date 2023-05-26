@@ -9,26 +9,31 @@ file mkdir $out_dir
 set top_module $::env(TOP)
 set rtl_dir $::env(RTL)
 set xdc_dir $::env(XDC)
+set ips_dir $::env(IPS)
 set synth_only $::env(SYNTHONLY)
 set target_clks $::env(CLOCKS)
+set part $::env(PART)
+set_param general.maxthreads 24
+set device [get_parts $part]; # xcvu13p-fhgb2104-2-i; #
+set_part $device
 
 set MAX_NET_PATH_NUM 1000
 # set MAX_LOGIC_LEVEL 40
 # set MIN_LOGIC_LEVEL 4
 
-# STEP#2: setup design sources and constraints
+# STEP#2: setup design sources, ips and constraints
 #
 read_verilog [ glob $rtl_dir/*.v ]
 read_xdc [ glob $xdc_dir/*.xdc ]
-
-# STEP#3: run synthesis, write design checkpoint, report timing,
+foreach f [ glob $ips_dir/*.tcl ] {
+  source $f
+}
+# STEP#3: generate ip, run synthesis, write design checkpoint, report timing,
 # and utilization estimates
 #
-set_param general.maxthreads 24
-set device [get_parts xcvu9p-flga2104-2L-e]; # xcvu9p_CIV-flga2577-2-e; #
-set_part $device
 report_property $device -file $out_dir/pre_synth_dev_prop.rpt
-
+generate_target all [ get_ips * ]
+synth_ip [ get_ips * ] -quiet
 synth_design -top $top_module -retiming
 write_checkpoint -force $out_dir/post_synth.dcp
 # Generated XDC file should be less than 1MB, otherwise too many constraints.
