@@ -13,6 +13,7 @@ set ips_dir $::env(IPS)
 set synth_only $::env(SYNTHONLY)
 set target_clks $::env(CLOCKS)
 set part $::env(PART)
+
 set_param general.maxthreads 24
 set device [get_parts $part]; # xcvu13p-fhgb2104-2-i; #
 set_part $device
@@ -28,6 +29,7 @@ read_xdc [ glob $xdc_dir/*.xdc ]
 foreach f [ glob $ips_dir/*.tcl ] {
   source $f
 }
+
 # STEP#3: generate ip, run synthesis, write design checkpoint, report timing,
 # and utilization estimates
 #
