@@ -16,7 +16,6 @@ export SYNTHONLY = $(ONLYSYNTH)
 export CLOCKS = $(CLK)
 export PART = $(PARTNAME)
 
-
 TRANSFLAGS = -aggressive-conditions # -lift -split-if
 RECOMPILEFLAGS = -u -show-compiles
 SCHEDFLAGS = -show-schedule -sched-dot # -show-rule-rel dMemInit_request_put doExecute
