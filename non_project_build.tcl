@@ -83,9 +83,11 @@ if { $synth_only } {
     exit
 }
 
-# STEP#4: run logic optimization, placement and physical logic optimization,
+# STEP#4: batch insert ila, run logic optimization, placement and physical logic optimization,
 # write design checkpoint, report utilization and timing estimates
 #
+source batch_insert_ila.tcl
+batch_insert_ila 1048576
 opt_design -remap
 power_opt_design
 place_design
