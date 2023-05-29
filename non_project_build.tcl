@@ -26,8 +26,8 @@ set MAX_NET_PATH_NUM 1000
 #
 read_verilog [ glob $rtl_dir/*.v ]
 read_xdc [ glob $xdc_dir/*.xdc ]
-foreach f [ glob $ips_dir/*.tcl ] {
-  source $f
+foreach file [ glob $ips_dir/*.tcl ] {
+  source $file
 }
 
 # STEP#3: generate ip, run synthesis, write design checkpoint, report timing,
@@ -88,8 +88,8 @@ if { $synth_only } {
 # STEP#4: batch insert ila, run logic optimization, placement and physical logic optimization,
 # write design checkpoint, report utilization and timing estimates
 #
-source batch_insert_ila.tcl
-batch_insert_ila 1048576
+# source batch_insert_ila.tcl
+# batch_insert_ila 1048576
 opt_design -remap
 power_opt_design
 place_design
