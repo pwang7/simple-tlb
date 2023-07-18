@@ -1,0 +1,6 @@
+[submodule "blue-xdma/BlueLib"]
+	path = blue-xdma/BlueLib
+	url = https://github.com/esa-tu-darmstadt/BlueLib
+[submodule "blue-xdma/BlueAXI"]
+	path = blue-xdma/BlueAXI
+	url = https://github.com/esa-tu-darmstadt/BlueAXI
