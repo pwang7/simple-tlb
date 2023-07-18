@@ -1,6 +1,6 @@
 .PHONY: check_build_folder compile create sim synth clean
 
-.DEFAULT_GOAL := synth
+.DEFAULT_GOAL := sim
 
 PCIE_LOC ?= "X0Y1"
 
@@ -15,7 +15,7 @@ compile: check_build_folder
 create: compile
 	@if [ ! -f "./build/xdma_ex/xdma_ex.xpr" ]; then \
 		vivado -mode batch -notrace -nolog -nojournal -source ./script/create.tcl -tclargs $(PCIE_LOC); \
-    fi
+	fi
 
 sim: create
 	vivado -mode batch -notrace -nolog -nojournal -source ./script/sim.tcl

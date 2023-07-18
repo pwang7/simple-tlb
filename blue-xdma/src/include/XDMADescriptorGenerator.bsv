@@ -25,7 +25,7 @@ interface IfcXDMADescriptorGeneratorFab;
     method Bit#(64) dst_addr;
     method Bit#(28) len;
     method Bit#(16) ctl;
-    (* prefix = "" *) method Action ready((* port = "ready" *) Bool r);
+    (* prefix = "" *) method Action ready((* port = "ready" *) Bool rdy);
 endinterface
 
 interface IfcXDMADescriptorGenerator;
@@ -66,42 +66,42 @@ module mkXDMADescriptorGenerator(IfcXDMADescriptorGenerator);
     Wire#(Bool) h2c_dsc_byp_ready <- mkBypassWire();
 
     rule clearWriteResponse;
-        let d <- axi4LiteMaster.writeResponse.get();
+        let pkg <- axi4LiteMaster.writeResponse.get();
     endrule
 
     rule c2hForward;
-        let d = c2hDescriptorFifo.first();
-        c2h_dsc_byp_src_addr <= d.srcAddr;
-        c2h_dsc_byp_dst_addr <= d.dstAddr;
-        c2h_dsc_byp_len <= d.length;
+        let pkg = c2hDescriptorFifo.first;
+        c2h_dsc_byp_src_addr <= pkg.srcAddr;
+        c2h_dsc_byp_dst_addr <= pkg.dstAddr;
+        c2h_dsc_byp_len <= pkg.length;
         c2h_dsc_byp_en <= 'b11;
     endrule
 
     rule c2hTransfer if (c2h_dsc_byp_ready);
-        let d = c2hDescriptorFifo.first();
+        let pkg = c2hDescriptorFifo.first;
         c2hDescriptorFifo.deq();
-        printColorTimed(GREEN, $format("Start C2HTransfer %h -> %h (%h)", d.srcAddr, d.dstAddr, d.length));
+        printColorTimed(GREEN, $format("Start C2HTransfer %h -> %h (%h)", pkg.srcAddr, pkg.dstAddr, pkg.length));
     endrule
 
     rule h2cForward;
-        let d = h2cDescriptorFifo.first();
-        h2c_dsc_byp_src_addr <= d.srcAddr;
-        h2c_dsc_byp_dst_addr <= d.dstAddr;
-        h2c_dsc_byp_len <= d.length;
+        let pkg = h2cDescriptorFifo.first;
+        h2c_dsc_byp_src_addr <= pkg.srcAddr;
+        h2c_dsc_byp_dst_addr <= pkg.dstAddr;
+        h2c_dsc_byp_len <= pkg.length;
         h2c_dsc_byp_ctl <= 'b11;
     endrule
 
     rule h2cTransfer if (h2c_dsc_byp_ready);
-        let d = h2cDescriptorFifo.first();
+        let pkg = h2cDescriptorFifo.first;
         h2cDescriptorFifo.deq();
-        printColorTimed(GREEN, $format("Start H2CTransfer %h -> %h (%h)", d.srcAddr, d.dstAddr, d.length));
+        printColorTimed(GREEN, $format("Start H2CTransfer %h -> %h (%h)", pkg.srcAddr, pkg.dstAddr, pkg.length));
     endrule
 
     function Action controlDMA(ControlDMAIfc control);
         return action axi4LiteMaster.writeRequest.put(AXI4_Lite_Write_Rq_Pkg {
             addr: control.isC2H ? 'h1004 : 'h0004,
             data: control.isEnable ? 'h1 : 'h0,
-            strb: unpack(-1),
+            strb: maxBound,
             prot: UNPRIV_SECURE_DATA
         });
         endaction;
@@ -139,20 +139,20 @@ module mkXDMADescriptorGenerator(IfcXDMADescriptorGenerator);
 
     interface liteFab = axi4LiteMaster.fab;
     interface IfcXDMADescriptorGeneratorFab c2hFab;
-        interface load = c2hDescriptorFifo.notEmpty();
-        interface src_addr = c2h_dsc_byp_src_addr;
-        interface dst_addr = c2h_dsc_byp_dst_addr;
-        interface len = c2h_dsc_byp_len;
-        interface ctl = c2h_dsc_byp_en;
-        interface ready = c2h_dsc_byp_ready._write;
+        method load = c2hDescriptorFifo.notEmpty;
+        method src_addr = c2h_dsc_byp_src_addr;
+        method dst_addr = c2h_dsc_byp_dst_addr;
+        method len = c2h_dsc_byp_len;
+        method ctl = c2h_dsc_byp_en;
+        method ready = c2h_dsc_byp_ready._write;
     endinterface
     interface IfcXDMADescriptorGeneratorFab h2cFab;
-        interface load = h2cDescriptorFifo.notEmpty();
-        interface src_addr = h2c_dsc_byp_src_addr;
-        interface dst_addr = h2c_dsc_byp_dst_addr;
-        interface len = h2c_dsc_byp_len;
-        interface ctl = h2c_dsc_byp_ctl;
-        interface ready = h2c_dsc_byp_ready._write;
+        method load = h2cDescriptorFifo.notEmpty;
+        method src_addr = h2c_dsc_byp_src_addr;
+        method dst_addr = h2c_dsc_byp_dst_addr;
+        method len = h2c_dsc_byp_len;
+        method ctl = h2c_dsc_byp_ctl;
+        method ready = h2c_dsc_byp_ready._write;
     endinterface
     interface c2h = toPut(c2hDescriptorFifo);
     interface h2c = toPut(h2cDescriptorFifo);
