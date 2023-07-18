@@ -5,7 +5,7 @@ import BlueAXI :: *;
 import BlueLib :: *;
 import AXI4LiteMaster :: *;
 import StmtFSM :: *;
-`include "Config.defines"
+import Config :: *;
 
 typedef struct {
     Bit#(28) length;

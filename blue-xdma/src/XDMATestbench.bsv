@@ -7,8 +7,7 @@ import AXI4LiteMaster :: *;
 import AXI4Slave :: *;
 import XDMADescriptorGenerator :: *;
 import StmtFSM :: *;
-
-`include "Config.defines"
+import Config :: *;
 
 interface IfcTop;
     (* prefix = "m_axil" *) interface IfcAxi4LiteMasterFab ifcAxi4LiteMaster;
@@ -55,9 +54,9 @@ module mkXDMATestbench(IfcTop);
         printColorTimed(BLUE, $format("Initiating C2H Transfer..."));
         xdmaDescriptorGenerator.startC2HTransfer();
         xdmaDescriptorGenerator.c2h.put(XDMADescriptor {
-            length: 'h80,
-            srcAddr: 'h0,
-            dstAddr: 'h800
+            length: fromInteger(valueOf(TESTLENGTH)),
+            srcAddr: fromInteger(valueOf(TESTSRCADDR)),
+            dstAddr: fromInteger(valueOf(TESTDSTADDR))
         });
         c2hInitiated <= True;
     endrule
@@ -66,9 +65,9 @@ module mkXDMATestbench(IfcTop);
         printColorTimed(BLUE, $format("Initiating H2C Transfer..."));
         xdmaDescriptorGenerator.startH2CTransfer();
         xdmaDescriptorGenerator.h2c.put(XDMADescriptor {
-            length: 'h80,
-            srcAddr: 'h800,
-            dstAddr: 'h0
+            length: fromInteger(valueOf(TESTLENGTH)),
+            srcAddr: fromInteger(valueOf(TESTDSTADDR)),
+            dstAddr: fromInteger(valueOf(TESTSRCADDR))
         });
         h2cInitiated <= True;
     endrule

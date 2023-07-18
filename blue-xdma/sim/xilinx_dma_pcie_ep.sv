@@ -35,8 +35,8 @@ module xilinx_dma_pcie_ep (
   wire m_axi_wready;
   wire m_axi_bvalid;
   wire m_axi_bready;
-  wire [3 : 0] m_axi_bid ;
-  wire [1:0] m_axi_bresp ;
+  wire [3 : 0] m_axi_bid;
+  wire [1:0] m_axi_bresp;
   wire [3 : 0] m_axi_arid;
   wire [63:0] m_axi_araddr;
   wire [7:0] m_axi_arlen;
@@ -90,7 +90,7 @@ module xilinx_dma_pcie_ep (
   wire [15 : 0] h2c_dsc_byp_ctl_0;
   wire h2c_dsc_byp_ready_0;
 
-  IBUFDS_GTE4 # (.REFCLK_HROW_CK_SEL(2'b00)) refclk_ibuf (.O(sys_clk_gt), .ODIV2(sys_clk), .I(sys_clk_p), .CEB(1'b0), .IB(sys_clk_n));
+  IBUFDS_GTE4# (.REFCLK_HROW_CK_SEL(2'b00)) refclk_ibuf (.O(sys_clk_gt), .ODIV2(sys_clk), .I(sys_clk_p), .CEB(1'b0), .IB(sys_clk_n));
 
   IBUF sys_reset_n_ibuf (.O(sys_rst_n_c), .I(sys_rst_n));
 
