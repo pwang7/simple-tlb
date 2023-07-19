@@ -7,18 +7,26 @@ import AXI4LiteMaster :: *;
 import AXI4Slave :: *;
 import XDMADescriptorGenerator :: *;
 import StmtFSM :: *;
+import Counter :: *;
 import Config :: *;
 
 interface IfcTop;
-    (* prefix = "m_axil" *) interface IfcAxi4LiteMasterFab ifcAxi4LiteMaster;
     (* prefix = "s_axi" *) interface IfcAxi4SlaveFab ifcAxi4Slave;
-    (* prefix = "c2h_dsc_byp" *) interface IfcXDMADescriptorGeneratorFab c2hFab;
-    (* prefix = "h2c_dsc_byp" *) interface IfcXDMADescriptorGeneratorFab h2cFab;
+    (* prefix = "" *) interface IfcXDMADescriptorGeneratorFab dscFab;
 endinterface
 
 (* synthesize, clock_prefix = "axi_aclk", reset_prefix = "axi_aresetn" *)
 module mkXDMATestbench(IfcTop);
-
+    let c2hTestDescriptor = XDMADescriptor {
+        length: fromInteger(valueOf(TESTLENGTH)),
+        srcAddr: fromInteger(valueOf(TESTSRCADDR)),
+        dstAddr: fromInteger(valueOf(TESTDSTADDR))
+    };
+    let h2cTestDescriptor = XDMADescriptor {
+        length: fromInteger(valueOf(TESTLENGTH)),
+        srcAddr: fromInteger(valueOf(TESTDSTADDR)),
+        dstAddr: fromInteger(valueOf(TESTSRCADDR))
+    };
     let xdmaDescriptorGenerator <- mkXDMADescriptorGenerator();
     let axi4Slave <- mkAXI4Slave();
 
@@ -31,44 +39,43 @@ module mkXDMATestbench(IfcTop);
     Reg#(Bool) h2cFinished <- mkReg(False);
     Reg#(Bool) h2cCheckedFailed <- mkReg(False);
 
+    // The function generates the bit vector by concatenating 8 bytes,
+    // each of which is obtained by adding the input address to an offset and masking the result with 'hFF.
+    // This code is designed to be compatible with existing example tests.
+    // ex: 0x0706050403020100 (addr = 0)
     function Bit#(AXI4_SLAVE_DATASz) generatePattern(Bit#(AXI4_SLAVE_ADDRSz) addr);
-        Bit#(AXI4_SLAVE_DATASz) out = 0;
-        for (Integer i = valueOf(AXI4_SLAVE_DATASz) / 8 - 1; i >= 0; i = i - 1) begin
-            out = out << 8;
-            out = out | ((addr + fromInteger(i)) & 'hFF);
-        end
-        return out;
+        return ((((((((addr + 7) & 'hFF) << 8
+           | ((addr + 6) & 'hFF)) << 8
+           | ((addr + 5) & 'hFF)) << 8
+           | ((addr + 4) & 'hFF)) << 8
+           | ((addr + 3) & 'hFF)) << 8
+           | ((addr + 2) & 'hFF)) << 8
+           | ((addr + 1) & 'hFF)) << 8
+           | (addr & 'hFF);
     endfunction
 
-    Reg#(UInt#(64)) count <- mkReg(0);
+    Counter#(64) tickTockCounter <- mkCounter(0);
 
-    rule forceStop;
-        count <= count + 1;
-        if (count >= fromInteger(valueOf(TIMEOUT))) begin
-            printColorTimed(RED, $format("If you see this, the test has timed out."));
-            $finish(1);
-        end
+    rule tickTock;
+        tickTockCounter.inc(1);
     endrule
 
-    rule initC2HTransfer if (count == fromInteger(valueOf(WAITRESET)) && !c2hInitiated);
+    rule forceStop if (tickTockCounter.value == fromInteger(valueOf(STOPAFTER)));
+        printColorTimed(RED, $format("If you see this, the test has timed out."));
+        $finish(1);
+    endrule
+
+    rule initC2HTransfer if (tickTockCounter.value == fromInteger(valueOf(WAITRESET)) && !c2hInitiated);
         printColorTimed(BLUE, $format("Initiating C2H Transfer..."));
-        xdmaDescriptorGenerator.startC2HTransfer();
-        xdmaDescriptorGenerator.c2h.put(XDMADescriptor {
-            length: fromInteger(valueOf(TESTLENGTH)),
-            srcAddr: fromInteger(valueOf(TESTSRCADDR)),
-            dstAddr: fromInteger(valueOf(TESTDSTADDR))
-        });
+        xdmaDescriptorGenerator.dsc.startC2HTransfer();
+        xdmaDescriptorGenerator.dsc.c2h.put(c2hTestDescriptor);
         c2hInitiated <= True;
     endrule
 
     rule initH2CTransfer if (c2hInitiated && c2hFinished && !h2cInitiated);
         printColorTimed(BLUE, $format("Initiating H2C Transfer..."));
-        xdmaDescriptorGenerator.startH2CTransfer();
-        xdmaDescriptorGenerator.h2c.put(XDMADescriptor {
-            length: fromInteger(valueOf(TESTLENGTH)),
-            srcAddr: fromInteger(valueOf(TESTDSTADDR)),
-            dstAddr: fromInteger(valueOf(TESTSRCADDR))
-        });
+        xdmaDescriptorGenerator.dsc.startH2CTransfer();
+        xdmaDescriptorGenerator.dsc.h2c.put(h2cTestDescriptor);
         h2cInitiated <= True;
     endrule
 
@@ -138,9 +145,7 @@ module mkXDMATestbench(IfcTop);
         $finish(0);
     endrule
 
-    interface ifcAxi4LiteMaster = xdmaDescriptorGenerator.liteFab;
     interface ifcAxi4Slave = axi4Slave.fab;
-    interface c2hFab = xdmaDescriptorGenerator.c2hFab;
-    interface h2cFab = xdmaDescriptorGenerator.h2cFab;
+    interface dscFab = xdmaDescriptorGenerator.fab;
 
 endmodule

@@ -3,7 +3,7 @@ package Config;
 import BlueAXI :: *;
 
 typedef 3000 WAITRESET;
-typedef 10000 TIMEOUT;
+typedef 10000 STOPAFTER;
 
 typedef 'h80 TESTLENGTH;
 typedef 'h0 TESTSRCADDR;
@@ -43,5 +43,19 @@ typedef AXI4_Lite_Read_Rq_Pkg#(AXI4_LITE_MASTER_ADDRSz) Axi4LiteMasterReadReq;
 typedef AXI4_Lite_Read_Rs_Pkg#(AXI4_LITE_MASTER_DATASz) Axi4LiteMasterReadRsp;
 typedef AXI4_Lite_Master_Wr#(AXI4_LITE_MASTER_ADDRSz, AXI4_LITE_MASTER_DATASz) Axi4LiteMasterWrite;
 typedef AXI4_Lite_Master_Rd#(AXI4_LITE_MASTER_ADDRSz, AXI4_LITE_MASTER_DATASz) Axi4LiteMasterRead;
+
+///////////////////////////////////////////////
+/////             XDMA DESC               /////
+///////////////////////////////////////////////
+
+typedef 28 XDMA_DESC_LEN;
+typedef 64 XDMA_DESC_ADDRSz;
+typedef 16 XDMA_CTL_LEN;
+typedef Bit#(XDMA_DESC_LEN) XDMADescriptorLength;
+typedef Bit#(XDMA_DESC_ADDRSz) XDMADescriptorAddressSz;
+typedef Bit#(XDMA_CTL_LEN) XDMADescriptorCtl;
+typedef 'b11 XDMA_DESC_ENABLE;
+typedef 'h1004 XDMA_C2H_ADDR;
+typedef 'h0004 XDMA_H2C_ADDR;
 
 endpackage

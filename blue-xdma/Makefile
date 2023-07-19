@@ -2,27 +2,33 @@
 
 .DEFAULT_GOAL := sim
 
-PCIE_LOC ?= "X0Y1"
+PCIE_LOC ?= X0Y1
+BUILD_DIR ?= build
+SCRIPT_DIR ?= script
+CREATE_SCRIPT ?= $(SCRIPT_DIR)/create.tcl
+SIM_SCRIPT ?= $(SCRIPT_DIR)/sim.tcl
+SYNTH_SCRIPT ?= $(SCRIPT_DIR)/synth_impl.tcl
+BSC_LIB_DIR ?= /opt/bsc/lib/Verilog
 
 check_build_folder:
-	@if [ ! -d "build" ]; then \
-		mkdir build; \
+	@if [ ! -d "$(BUILD_DIR)" ]; then \
+		mkdir $(BUILD_DIR); \
 	fi
 
 compile: check_build_folder
-	$(MAKE) -C ./src
+	$(MAKE) -C ./src BUILD_DIR=$(BUILD_DIR)
 
 create: compile
-	@if [ ! -f "./build/xdma_ex/xdma_ex.xpr" ]; then \
-		vivado -mode batch -notrace -nolog -nojournal -source ./script/create.tcl -tclargs $(PCIE_LOC); \
+	@if [ ! -f "$(BUILD_DIR)/xdma_ex/xdma_ex.xpr" ]; then \
+		vivado -mode batch -notrace -nolog -nojournal -source $(CREATE_SCRIPT) -tclargs $(BUILD_DIR) $(BSC_LIB_DIR) $(PCIE_LOC); \
 	fi
 
 sim: create
-	vivado -mode batch -notrace -nolog -nojournal -source ./script/sim.tcl
+	vivado -mode batch -notrace -nolog -nojournal -source $(SIM_SCRIPT) -tclargs $(BUILD_DIR)
 
 synth: create
-	vivado -mode batch -notrace -nolog -nojournal -source ./script/synth_impl.tcl
+	vivado -mode batch -notrace -nolog -nojournal -source $(SYNTH_SCRIPT) -tclargs $(BUILD_DIR)
 
 clean:
 	@rm *.log *.jou *.str || true
-	@rm -rf build || true
+	@rm -rf $(BUILD_DIR) || true

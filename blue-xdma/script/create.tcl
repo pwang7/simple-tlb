@@ -1,4 +1,6 @@
-set pcie_blk_locn [lindex $argv 0]
+set build_dir [lindex $argv 0]
+set bsc_lib_dir [lindex $argv 1]
+set pcie_blk_locn [lindex $argv 2]
 
 # Create project and specify the target device and memory option
 create_project -force -quiet -part xcvu13p-fhgb2104-2-i -in_memory
@@ -16,7 +18,7 @@ set_property -dict [ list \
 ] [get_ips xdma]
 
 # Open the example project and specify the IP to use
-open_example_project -force -in_process -dir ./build [get_ips xdma]
+open_example_project -force -in_process -dir $build_dir [get_ips xdma]
 
 # Copy test files and source files to the project
 file copy -force "./sim/tests.vh" [get_files tests.vh]
@@ -24,9 +26,12 @@ file copy -force "./sim/xilinx_dma_pcie_ep.sv" [get_files xilinx_dma_pcie_ep.sv]
 
 # Import required files
 import_files -fileset sources_1 [list \
-  "./sim/FIFO2.v" \
   "./src/mkXDMATestbench.v" \
 ]
+
+# Import the BSC library
+import_files -fileset sources_1 $bsc_lib_dir
+remove_files main.v
 
 # Set the top module
 set_property top xilinx_dma_pcie_ep [get_filesets sources_1]
