@@ -58,4 +58,13 @@ typedef 'b11 XDMA_DESC_ENABLE;
 typedef 'h1004 XDMA_C2H_ADDR;
 typedef 'h0004 XDMA_H2C_ADDR;
 
+///////////////////////////////////////////////
+/////            ERROR CODE               /////
+///////////////////////////////////////////////
+
+typedef 0 NO_ERROR;
+typedef 1 TIMEOUT_ERROR;
+typedef 2 COMPARE_ERROR;
+typedef 3 AXI4_LITE_CONTROL_ERROR;
+
 endpackage

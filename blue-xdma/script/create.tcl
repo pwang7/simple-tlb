@@ -1,3 +1,7 @@
+if {[llength $argv] != 3} {
+    error "Usage: $argv0 <build_dir> <bsc_lib_dir> <pcie_blk_locn>"
+}
+
 set build_dir [lindex $argv 0]
 set bsc_lib_dir [lindex $argv 1]
 set pcie_blk_locn [lindex $argv 2]

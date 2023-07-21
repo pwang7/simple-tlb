@@ -13,9 +13,7 @@ interface IfcAxi4SlaveFab;
     interface Axi4SlaveReadFab rd;
 endinterface
 
-interface IfcAxi4Slave;
-    (* prefix = "" *)
-    interface IfcAxi4SlaveFab fab;
+interface IfcAxi4SlaveData;
     interface Get#(Axi4SlaveReadReq) readRequest;
     interface Put#(Axi4SlaveReadRsp) readResponse;
     interface Get#(Axi4SlaveWriteReqAddr) writeAddr;
@@ -23,19 +21,28 @@ interface IfcAxi4Slave;
     interface Put#(Axi4SlaveWriteRsp) writeResponse;
 endinterface
 
-module mkAXI4Slave(IfcAxi4Slave);
-    Axi4SlaveWrite s_wr <- mkAXI4_Slave_Wr(valueOf(AXI4_SLAVE_FIFOSz), valueOf(AXI4_SLAVE_FIFOSz), valueOf(AXI4_SLAVE_FIFOSz));
-    Axi4SlaveRead s_rd <- mkAXI4_Slave_Rd(valueOf(AXI4_SLAVE_FIFOSz), valueOf(AXI4_SLAVE_FIFOSz));
+interface IfcAxi4Slave;
+    (* prefix = "" *)
+    interface IfcAxi4SlaveFab fab;
+    interface IfcAxi4SlaveData data;
+endinterface
+
+module mkAxi4Slave(IfcAxi4Slave);
+    Axi4SlaveWrite wr <- mkAXI4_Slave_Wr(valueOf(AXI4_SLAVE_FIFOSz), valueOf(AXI4_SLAVE_FIFOSz), valueOf(AXI4_SLAVE_FIFOSz));
+    Axi4SlaveRead rd <- mkAXI4_Slave_Rd(valueOf(AXI4_SLAVE_FIFOSz), valueOf(AXI4_SLAVE_FIFOSz));
 
     interface fab = IfcAxi4SlaveFab {
-        wr: s_wr.fab,
-        rd: s_rd.fab
+        wr: wr.fab,
+        rd: rd.fab
     };
-    interface readRequest = s_rd.request;
-    interface readResponse = s_rd.response;
-    interface writeAddr = s_wr.request_addr;
-    interface writeData = s_wr.request_data;
-    interface writeResponse = s_wr.response;
+
+    interface data = IfcAxi4SlaveData {
+        readRequest: rd.request,
+        readResponse: rd.response,
+        writeAddr: wr.request_addr,
+        writeData: wr.request_data,
+        writeResponse: wr.response
+    };
 endmodule
 
 endpackage

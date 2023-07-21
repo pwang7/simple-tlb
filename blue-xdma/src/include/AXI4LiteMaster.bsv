@@ -21,7 +21,7 @@ interface IfcAxi4LiteMaster;
     interface Get#(Axi4LiteMasterReadRsp) readResponse;
 endinterface
 
-module mkAXI4LiteMaster(IfcAxi4LiteMaster);
+module mkAxi4LiteMaster(IfcAxi4LiteMaster);
 
     Axi4LiteMasterWrite m_wr <- mkAXI4_Lite_Master_Wr(valueOf(AXI4_LITE_MASTER_FIFOSz));
     Axi4LiteMasterRead m_rd <- mkAXI4_Lite_Master_Rd(valueOf(AXI4_LITE_MASTER_FIFOSz));

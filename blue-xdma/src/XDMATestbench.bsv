@@ -11,8 +11,7 @@ import Counter :: *;
 import Config :: *;
 
 interface IfcTop;
-    (* prefix = "s_axi" *) interface IfcAxi4SlaveFab ifcAxi4Slave;
-    (* prefix = "" *) interface IfcXDMADescriptorGeneratorFab dscFab;
+    (* prefix = "" *) interface IfcXDMADescriptorGeneratorFab fab;
 endinterface
 
 (* synthesize, clock_prefix = "axi_aclk", reset_prefix = "axi_aresetn" *)
@@ -27,8 +26,7 @@ module mkXDMATestbench(IfcTop);
         srcAddr: fromInteger(valueOf(TESTDSTADDR)),
         dstAddr: fromInteger(valueOf(TESTSRCADDR))
     };
-    let xdmaDescriptorGenerator <- mkXDMADescriptorGenerator();
-    let axi4Slave <- mkAXI4Slave();
+    let xdmaDescriptorGenerator <- mkXDMADescriptorGenerator;
 
     Reg#(Maybe#(AXI4_Read_Rq#(AXI4_SLAVE_ADDRSz, AXI4_SLAVE_IDSz, AXI4_SLAVE_USRSz))) readReq <- mkReg(tagged Invalid);
     Reg#(Maybe#(AXI4_Write_Rq_Addr#(AXI4_SLAVE_ADDRSz, AXI4_SLAVE_IDSz, AXI4_SLAVE_USRSz))) writeReq <- mkReg(tagged Invalid);
@@ -62,33 +60,33 @@ module mkXDMATestbench(IfcTop);
 
     rule forceStop if (tickTockCounter.value == fromInteger(valueOf(STOPAFTER)));
         printColorTimed(RED, $format("If you see this, the test has timed out."));
-        $finish(1);
+        $finish(fromInteger(valueOf(TIMEOUT_ERROR)));
     endrule
 
     rule initC2HTransfer if (tickTockCounter.value == fromInteger(valueOf(WAITRESET)) && !c2hInitiated);
         printColorTimed(BLUE, $format("Initiating C2H Transfer..."));
-        xdmaDescriptorGenerator.dsc.startC2HTransfer();
+        xdmaDescriptorGenerator.dsc.startC2HTransfer;
         xdmaDescriptorGenerator.dsc.c2h.put(c2hTestDescriptor);
         c2hInitiated <= True;
     endrule
 
     rule initH2CTransfer if (c2hInitiated && c2hFinished && !h2cInitiated);
         printColorTimed(BLUE, $format("Initiating H2C Transfer..."));
-        xdmaDescriptorGenerator.dsc.startH2CTransfer();
+        xdmaDescriptorGenerator.dsc.startH2CTransfer;
         xdmaDescriptorGenerator.dsc.h2c.put(h2cTestDescriptor);
         h2cInitiated <= True;
     endrule
 
     rule axi4ReceiveReadRequest if (!(isValid(readReq)) && !c2hFinished && c2hInitiated);
-        let pkg <- axi4Slave.readRequest.get();
-        readReq <= tagged Valid(pkg);
+        let pkg <- xdmaDescriptorGenerator.data.readRequest.get;
+        readReq <= tagged Valid pkg;
     endrule
 
     rule axi4ReceiveReadResponse if (isValid(readReq));
         let pkg = fromMaybe(?, readReq);
         let pattern = generatePattern(pkg.addr);
 
-        axi4Slave.readResponse.put(AXI4_Read_Rs {
+        xdmaDescriptorGenerator.data.readResponse.put(AXI4_Read_Rs {
             data: pattern,
             last: (pkg.burst_length == 0),
             id: pkg.id,
@@ -102,25 +100,25 @@ module mkXDMATestbench(IfcTop);
         else begin
             pkg.burst_length = pkg.burst_length - 1;
             pkg.addr = pkg.addr + (1 << pack(pkg.burst_size));
-            readReq <= tagged Valid(pkg);
+            readReq <= tagged Valid pkg;
         end
     endrule
 
     rule axi4ReceiveWriteRequest if (!(isValid(writeReq)) && !h2cFinished && h2cInitiated);
-        let addrPkg <- axi4Slave.writeAddr.get();
-        writeReq <= tagged Valid(addrPkg);
+        let addrPkg <- xdmaDescriptorGenerator.data.writeAddr.get;
+        writeReq <= tagged Valid addrPkg;
     endrule
 
     rule axi4ReceiveWriteResponse if (isValid(writeReq));
         let addrPkg = fromMaybe(?, writeReq);
-        let dataPkg <- axi4Slave.writeData.get();
+        let dataPkg <- xdmaDescriptorGenerator.data.writeData.get;
         let data = dataPkg.data;
         let pattern = generatePattern(addrPkg.addr);
 
         if (pattern != data) begin
             printColorTimed(RED, $format("Error: addr = %h, data = %h", addrPkg.addr, data));
             h2cCheckedFailed <= True;
-            $finish(2);
+            $finish(fromInteger(valueOf(COMPARE_ERROR)));
         end
         if (addrPkg.burst_length == 'h0) begin
             writeReq <= tagged Invalid;
@@ -129,7 +127,7 @@ module mkXDMATestbench(IfcTop);
         else begin
             addrPkg.burst_length = addrPkg.burst_length - 1;
             addrPkg.addr = addrPkg.addr + (1 << pack(addrPkg.burst_size));
-            writeReq <= tagged Valid(addrPkg);
+            writeReq <= tagged Valid addrPkg;
         end
     endrule
 
@@ -142,10 +140,8 @@ module mkXDMATestbench(IfcTop);
         printColorTimed(GREEN, $format("|  __/ ___ \\ ___) |__) |"));
         printColorTimed(GREEN, $format("|_| /_/   \\_\\____/____/ "));
         printColorTimed(GREEN, $format("                  "));
-        $finish(0);
+        $finish(fromInteger(valueOf(NO_ERROR)));
     endrule
 
-    interface ifcAxi4Slave = axi4Slave.fab;
-    interface dscFab = xdmaDescriptorGenerator.fab;
-
+    interface fab = xdmaDescriptorGenerator.fab;
 endmodule

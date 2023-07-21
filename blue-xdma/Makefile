@@ -9,6 +9,7 @@ CREATE_SCRIPT ?= $(SCRIPT_DIR)/create.tcl
 SIM_SCRIPT ?= $(SCRIPT_DIR)/sim.tcl
 SYNTH_SCRIPT ?= $(SCRIPT_DIR)/synth_impl.tcl
 BSC_LIB_DIR ?= /opt/bsc/lib/Verilog
+PROJECT_DIR ?= $(BUILD_DIR)/xdma_ex/xdma_ex.xpr
 
 check_build_folder:
 	@if [ ! -d "$(BUILD_DIR)" ]; then \
@@ -24,10 +25,10 @@ create: compile
 	fi
 
 sim: create
-	vivado -mode batch -notrace -nolog -nojournal -source $(SIM_SCRIPT) -tclargs $(BUILD_DIR)
+	vivado -mode batch -notrace -nolog -nojournal -source $(SIM_SCRIPT) -tclargs $(PROJECT_DIR)
 
 synth: create
-	vivado -mode batch -notrace -nolog -nojournal -source $(SYNTH_SCRIPT) -tclargs $(BUILD_DIR)
+	vivado -mode batch -notrace -nolog -nojournal -source $(SYNTH_SCRIPT) -tclargs $(PROJECT_DIR)
 
 clean:
 	@rm *.log *.jou *.str || true
