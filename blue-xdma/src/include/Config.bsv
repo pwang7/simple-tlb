@@ -5,7 +5,8 @@ import BlueAXI :: *;
 typedef 3000 WAITRESET;
 typedef 10000 STOPAFTER;
 
-typedef 'h80 TESTLENGTH;
+// Compatible with the example design
+typedef 128 TESTLENGTH;
 typedef 'h0 TESTSRCADDR;
 typedef 'h800 TESTDSTADDR;
 
