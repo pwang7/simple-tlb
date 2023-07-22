@@ -28,7 +28,7 @@ module xilinx_dma_pcie_ep #(
   wire                              sys_clk;
   wire                              sys_clk_gt;
   wire                              sys_rst_n_c;
-  reg  [         C_NUM_USR_IRQ-1:0] usr_irq_req = 0;
+  reg  [         C_NUM_USR_IRQ-1:0] usr_irq_req;
   wire [         C_NUM_USR_IRQ-1:0] usr_irq_ack;
   wire [    C_M_AXI_ADDR_WIDTH-1:0] m_axi_awaddr;
   wire [      C_M_AXI_ID_WIDTH-1:0] m_axi_awid;
@@ -289,5 +289,13 @@ module xilinx_dma_pcie_ep #(
                     .h2c_dsc_byp_ctl(h2c_dsc_byp_ctl_0),
                     .h2c_dsc_byp_ready(h2c_dsc_byp_ready_0)
                   );
+
+  always @(negedge sys_rst_n_c)
+  begin
+    if (~sys_rst_n_c)
+    begin
+      usr_irq_req <= 0;
+    end
+  end
 
 endmodule
