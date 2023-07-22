@@ -8,7 +8,6 @@ SCRIPT_DIR ?= script
 CREATE_SCRIPT ?= $(SCRIPT_DIR)/create.tcl
 SIM_SCRIPT ?= $(SCRIPT_DIR)/sim.tcl
 SYNTH_SCRIPT ?= $(SCRIPT_DIR)/synth_impl.tcl
-BSC_LIB_DIR ?= /opt/bsc/lib/Verilog
 PROJECT_DIR ?= $(BUILD_DIR)/xdma_ex/xdma_ex.xpr
 
 check_build_folder:
@@ -17,11 +16,11 @@ check_build_folder:
 	fi
 
 compile: check_build_folder
-	$(MAKE) -C ./src BUILD_DIR=$(BUILD_DIR)
+	$(MAKE) -C ./src BUILD_DIR=../$(BUILD_DIR)
 
 create: compile
 	@if [ ! -f "$(BUILD_DIR)/xdma_ex/xdma_ex.xpr" ]; then \
-		vivado -mode batch -notrace -nolog -nojournal -source $(CREATE_SCRIPT) -tclargs $(BUILD_DIR) $(BSC_LIB_DIR) $(PCIE_LOC); \
+		vivado -mode batch -notrace -nolog -nojournal -source $(CREATE_SCRIPT) -tclargs $(BUILD_DIR) $(PCIE_LOC); \
 	fi
 
 sim: create

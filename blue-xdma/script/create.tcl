@@ -1,10 +1,9 @@
-if {[llength $argv] != 3} {
+if {[llength $argv] != 2} {
     error "Usage: $argv0 <build_dir> <bsc_lib_dir> <pcie_blk_locn>"
 }
 
 set build_dir [lindex $argv 0]
-set bsc_lib_dir [lindex $argv 1]
-set pcie_blk_locn [lindex $argv 2]
+set pcie_blk_locn [lindex $argv 1]
 
 # Create project and specify the target device and memory option
 create_project -force -quiet -part xcvu13p-fhgb2104-2-i -in_memory
@@ -34,7 +33,7 @@ import_files -fileset sources_1 [list \
 ]
 
 # Import the BSC library
-import_files -fileset sources_1 $bsc_lib_dir
+import_files -fileset sources_1 $build_dir
 remove_files main.v
 
 # Set the top module
