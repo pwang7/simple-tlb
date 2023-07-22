@@ -22,7 +22,6 @@ interface IfcAxi4LiteMaster;
 endinterface
 
 module mkAxi4LiteMaster(IfcAxi4LiteMaster);
-
     Axi4LiteMasterWrite wr <- mkAXI4_Lite_Master_Wr(valueOf(AXI4_LITE_MASTER_FIFOSz));
     Axi4LiteMasterRead rd <- mkAXI4_Lite_Master_Rd(valueOf(AXI4_LITE_MASTER_FIFOSz));
 
@@ -30,12 +29,10 @@ module mkAxi4LiteMaster(IfcAxi4LiteMaster);
         wr: wr.fab,
         rd: rd.fab
     };
-
     interface writeResponse = wr.response;
     interface readResponse = rd.response;
     interface writeRequest = wr.request;
     interface readRequest = rd.request;
-
 endmodule
 
 endpackage

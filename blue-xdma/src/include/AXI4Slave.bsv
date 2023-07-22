@@ -35,7 +35,6 @@ module mkAxi4Slave(IfcAxi4Slave);
         wr: wr.fab,
         rd: rd.fab
     };
-
     interface data = IfcAxi4SlaveData {
         readRequest: rd.request,
         readResponse: rd.response,
