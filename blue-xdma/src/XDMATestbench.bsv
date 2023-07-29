@@ -8,10 +8,11 @@ import AXI4Slave :: *;
 import XDMADescriptorGenerator :: *;
 import StmtFSM :: *;
 import Counter :: *;
+import BRAMFIFO::*;
 import Config :: *;
 
 interface IfcTop;
-    (* prefix = "" *) interface IfcXDMADescriptorGeneratorFab fab;
+    (* prefix = "" *) interface IfcXDMADescriptorFab fab;
 endinterface
 
 (* synthesize, clock_prefix = "axi_aclk", reset_prefix = "axi_aresetn" *)
@@ -19,11 +20,11 @@ module mkXDMATestbench(IfcTop);
     let c2hTestDescriptor = XDMADescriptor {
         length: fromInteger(valueOf(TESTLENGTH)),
         srcAddr: fromInteger(valueOf(TESTSRCADDR)),
-        dstAddr: fromInteger(valueOf(TESTDSTADDR))
+        dstAddr: fromInteger(valueOf(TESTDSTADDR) + valueOf(RANDOM_SEED))
     };
     let h2cTestDescriptor = XDMADescriptor {
         length: fromInteger(valueOf(TESTLENGTH)),
-        srcAddr: fromInteger(valueOf(TESTDSTADDR)),
+        srcAddr: fromInteger(valueOf(TESTDSTADDR) + valueOf(RANDOM_SEED)),
         dstAddr: fromInteger(valueOf(TESTSRCADDR))
     };
     let xdmaDescriptorGenerator <- mkXDMADescriptorGenerator;
@@ -41,7 +42,8 @@ module mkXDMATestbench(IfcTop);
     // each of which is obtained by adding the input address to an offset and masking the result with 'hFF.
     // This code is designed to be compatible with existing example tests.
     // ex: 0x0706050403020100 (addr = 0)
-    function Bit#(AXI4_SLAVE_DATASz) generatePattern(Bit#(AXI4_SLAVE_ADDRSz) addr);
+    function Bit#(AXI4_SLAVE_DATASz) generateTestData(Bit#(AXI4_SLAVE_ADDRSz) addr);
+        addr = addr + fromInteger(valueOf(RANDOM_SEED)); // add random seed
         return ((((((((addr + 7) & 'hFF) << 8
            | ((addr + 6) & 'hFF)) << 8
            | ((addr + 5) & 'hFF)) << 8
@@ -58,21 +60,27 @@ module mkXDMATestbench(IfcTop);
         tickTockCounter.inc(1);
     endrule
 
-    rule forceStop if (tickTockCounter.value == fromInteger(valueOf(STOPAFTER)));
+    rule forceStop if (tickTockCounter.value == fromInteger(valueOf(STOP_AFTER)));
         printColorTimed(RED, $format("If you see this, the test has timed out."));
         $finish(fromInteger(valueOf(TIMEOUT_ERROR)));
     endrule
 
-    rule initC2HTransfer if (tickTockCounter.value == fromInteger(valueOf(WAITRESET)) && !c2hInitiated);
+    rule initC2HTransfer if (tickTockCounter.value == fromInteger(valueOf(WAIT_RESET)) && !c2hInitiated);
         printColorTimed(BLUE, $format("Initiating C2H Transfer..."));
-        xdmaDescriptorGenerator.dsc.startC2HTransfer;
+        xdmaDescriptorGenerator.dsc.controlDMA(DMA_Configure {
+            dir: C2H,
+            enable: True
+        });
         xdmaDescriptorGenerator.dsc.c2h.put(c2hTestDescriptor);
         c2hInitiated <= True;
     endrule
 
     rule initH2CTransfer if (c2hInitiated && c2hFinished && !h2cInitiated);
         printColorTimed(BLUE, $format("Initiating H2C Transfer..."));
-        xdmaDescriptorGenerator.dsc.startH2CTransfer;
+        xdmaDescriptorGenerator.dsc.controlDMA(DMA_Configure {
+            dir: H2C,
+            enable: True
+        });
         xdmaDescriptorGenerator.dsc.h2c.put(h2cTestDescriptor);
         h2cInitiated <= True;
     endrule
@@ -82,12 +90,14 @@ module mkXDMATestbench(IfcTop);
         readReq <= tagged Valid pkg;
     endrule
 
-    rule axi4ReceiveReadResponse if (isValid(readReq));
-        let pkg = fromMaybe(?, readReq);
-        let pattern = generatePattern(pkg.addr);
+    FIFOF#(Bit#(AXI4_SLAVE_DATASz)) compareDataFifo <- mkSizedBRAMFIFOF(valueOf(TESTLENGTH));
 
+    rule axi4SendReadResponse if (isValid(readReq));
+        let pkg = fromMaybe(?, readReq);
+        let actual = generateTestData(pkg.addr);
+        compareDataFifo.enq(actual);
         xdmaDescriptorGenerator.data.readResponse.put(AXI4_Read_Rs {
-            data: pattern,
+            data: actual,
             last: (pkg.burst_length == 0),
             id: pkg.id,
             user: pkg.user,
@@ -104,19 +114,20 @@ module mkXDMATestbench(IfcTop);
         end
     endrule
 
-    rule axi4ReceiveWriteRequest if (!(isValid(writeReq)) && !h2cFinished && h2cInitiated);
+    rule axi4ReceiveWriteAddr if (!(isValid(writeReq)) && !h2cFinished && h2cInitiated);
         let addrPkg <- xdmaDescriptorGenerator.data.writeAddr.get;
         writeReq <= tagged Valid addrPkg;
     endrule
 
-    rule axi4ReceiveWriteResponse if (isValid(writeReq));
+    rule axi4ReceiveWriteData if (isValid(writeReq));
         let addrPkg = fromMaybe(?, writeReq);
         let dataPkg <- xdmaDescriptorGenerator.data.writeData.get;
-        let data = dataPkg.data;
-        let pattern = generatePattern(addrPkg.addr);
+        let actual = dataPkg.data;
+        let refer = compareDataFifo.first;
+        compareDataFifo.deq;
 
-        if (pattern != data) begin
-            printColorTimed(RED, $format("Error: addr = %h, data = %h", addrPkg.addr, data));
+        if (refer != actual) begin
+            printColorTimed(RED, $format("Error: addr = %h, actual = %h, refer = %h", addrPkg.addr, actual, refer));
             h2cCheckedFailed <= True;
             $finish(fromInteger(valueOf(COMPARE_ERROR)));
         end
@@ -131,7 +142,12 @@ module mkXDMATestbench(IfcTop);
         end
     endrule
 
-    rule finished if (h2cFinished && !h2cCheckedFailed);
+    rule compareDataFifoNotEmpty if (h2cFinished && !h2cCheckedFailed && compareDataFifo.notEmpty);
+        printColorTimed(RED, $format("Compare Data FIFO is not empty!"));
+        $finish(fromInteger(valueOf(COMPARE_ERROR)));
+    endrule
+
+    rule finished if (h2cFinished && !h2cCheckedFailed && !compareDataFifo.notEmpty);
         printColorTimed(GREEN, $format("Test finished successfully."));
         printColorTimed(GREEN, $format("                  "));
         printColorTimed(GREEN, $format(" ____   _    ____ ____  "));

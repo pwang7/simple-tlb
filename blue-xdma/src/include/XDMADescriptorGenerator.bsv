@@ -4,9 +4,9 @@ import GetPut :: *;
 import BlueAXI :: *;
 import BlueLib :: *;
 import AXI4LiteMaster :: *;
-import AXI4Slave :: *;
 import StmtFSM :: *;
 import Config :: *;
+import AXI4Slave :: *;
 
 typedef struct {
     XDMADescriptorLength length;
@@ -14,58 +14,54 @@ typedef struct {
     XDMADescriptorAddressSz dstAddr;
 } XDMADescriptor deriving (Bits, Eq, FShow);
 
+typedef enum {C2H, H2C} Direction deriving(Eq, Bits, FShow);
+
 typedef struct {
-    Bool isC2H;
+    Direction dir;
     Bool enable;
-} IfcControlDMA deriving (Bits, Eq, FShow);
+} DMA_Configure deriving (Bits, Eq, FShow);
 
 (* always_ready, always_enabled *)
-interface IfcXDMADescriptorFab;
+interface IfcXDMAChannelFab;
     method Bool load;
-    method XDMADescriptorAddressSz src_addr;
-    method XDMADescriptorAddressSz dst_addr;
-    method XDMADescriptorLength len;
-    method XDMADescriptorCtl ctl;
+    (* result = "src_addr" *) method XDMADescriptorAddressSz srcAddr;
+    (* result = "dst_addr" *) method XDMADescriptorAddressSz dstAddr;
+    (* result = "len" *) method XDMADescriptorLength len;
+    (* result = "ctl" *) method XDMADescriptorCtl ctl;
     (* prefix = "" *) method Action ready((* port = "ready" *) Bool rdy);
 endinterface
 
 (* always_ready, always_enabled *)
-interface IfcXDMADescriptorGeneratorFab;
+interface IfcXDMADescriptorFab;
     (* prefix = "m_axil" *) interface IfcAxi4LiteMasterFab liteFab;
-    (* prefix = "c2h_dsc_byp" *) interface IfcXDMADescriptorFab c2hFab;
-    (* prefix = "h2c_dsc_byp" *) interface IfcXDMADescriptorFab h2cFab;
+    (* prefix = "c2h_dsc_byp" *) interface IfcXDMAChannelFab c2hFab;
+    (* prefix = "h2c_dsc_byp" *) interface IfcXDMAChannelFab h2cFab;
     (* prefix = "s_axi" *) interface IfcAxi4SlaveFab axi4SlaveFab;
 endinterface
 
 interface IfcXDMADescriptor;
     interface Put#(XDMADescriptor) c2h;
     interface Put#(XDMADescriptor) h2c;
-    method Action startC2HTransfer;
-    method Action stopC2HTransfer;
-    method Action startH2CTransfer;
-    method Action stopH2CTransfer;
+    method Action controlDMA(DMA_Configure control);
 endinterface
 
-interface IfcXDMADescriptorGenerator;
-    interface IfcXDMADescriptorGeneratorFab fab;
+interface IfcXDMADescriptorGeneratorTop;
+    interface IfcXDMADescriptorFab fab;
     interface IfcXDMADescriptor dsc;
     interface IfcAxi4SlaveData data;
 endinterface
 
-module mkXDMADescriptorGenerator(IfcXDMADescriptorGenerator);
+module mkXDMADescriptorGenerator(IfcXDMADescriptorGeneratorTop);
 
-    let axi4LiteMaster <- mkAxi4LiteMaster;
+    let axi4LiteMaster <- mkAXI4LiteMaster;
     let axi4Slave <- mkAxi4Slave;
+
     Reg#(Bool) c2hReadyAfterLoadReg <- mkReg(False);
     Reg#(Bool) h2cReadyAfterLoadReg <- mkReg(False);
     Reg#(Bool) controlError <- mkReg(False);
 
     FIFOF#(XDMADescriptor) c2hDescriptorFifo <- mkFIFOF;
     FIFOF#(XDMADescriptor) h2cDescriptorFifo <- mkFIFOF;
-
-    ////////////////////////////////////////////////////////////////////////////
-    ///////////////////////   Controller   /////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////
 
     Reg#(Axi4LiteMasterWriteRsp) writeResponse <- mkReg(unpack(0));
 
@@ -120,11 +116,11 @@ module mkXDMADescriptorGenerator(IfcXDMADescriptorGenerator);
         h2cReadyAfterLoadReg <= h2cDscBypReady;
     endrule
 
-    function Action controlDMA(IfcControlDMA control);
+    function Action controlDMA(DMA_Configure control);
         return action
             if (!controlError) begin
                 axi4LiteMaster.writeRequest.put(AXI4_Lite_Write_Rq_Pkg {
-                    addr: control.isC2H ? fromInteger(valueOf(XDMA_C2H_ADDR)) : fromInteger(valueOf(XDMA_H2C_ADDR)),
+                    addr: (control.dir == C2H) ? fromInteger(valueOf(XDMA_C2H_ADDR)) : fromInteger(valueOf(XDMA_H2C_ADDR)),
                     data: zeroExtend(pack(control.enable)),
                     strb: maxBound,
                     prot: UNPRIV_SECURE_DATA
@@ -133,20 +129,20 @@ module mkXDMADescriptorGenerator(IfcXDMADescriptorGenerator);
         endaction;
     endfunction
 
-    interface fab = IfcXDMADescriptorGeneratorFab {
+    interface fab = IfcXDMADescriptorFab {
         liteFab: axi4LiteMaster.fab,
-        c2hFab: IfcXDMADescriptorFab {
+        c2hFab: IfcXDMAChannelFab {
             load: c2hDescriptorFifo.notEmpty,
-            src_addr: c2hDscBypSrcAddr,
-            dst_addr: c2hDscBypDstAddr,
+            srcAddr: c2hDscBypSrcAddr,
+            dstAddr: c2hDscBypDstAddr,
             len: c2hDscBypLen,
             ctl: c2hDscBypEn,
             ready: c2hDscBypReady._write
         },
-        h2cFab: IfcXDMADescriptorFab {
+        h2cFab: IfcXDMAChannelFab {
             load: h2cDescriptorFifo.notEmpty,
-            src_addr: h2cDscBypSrcAddr,
-            dst_addr: h2cDscBypDstAddr,
+            srcAddr: h2cDscBypSrcAddr,
+            dstAddr: h2cDscBypDstAddr,
             len: h2cDscBypLen,
             ctl: h2cDscBypCtl,
             ready: h2cDscBypReady._write
@@ -156,28 +152,7 @@ module mkXDMADescriptorGenerator(IfcXDMADescriptorGenerator);
     interface dsc = IfcXDMADescriptor {
         c2h: toPut(c2hDescriptorFifo),
         h2c: toPut(h2cDescriptorFifo),
-        startC2HTransfer: controlDMA(IfcControlDMA {
-            isC2H: True,
-            enable: True
-        }),
-        stopC2HTransfer: action
-            controlDMA(IfcControlDMA {
-                isC2H: True,
-                enable: False
-            });
-            c2hDescriptorFifo.clear;
-        endaction,
-        startH2CTransfer: controlDMA(IfcControlDMA {
-            isC2H: False,
-            enable: True
-        }),
-        stopH2CTransfer: action
-            controlDMA(IfcControlDMA {
-                isC2H: False,
-                enable: False
-            });
-            h2cDescriptorFifo.clear;
-        endaction
+        controlDMA: controlDMA
     };
     interface data = axi4Slave.data;
 endmodule

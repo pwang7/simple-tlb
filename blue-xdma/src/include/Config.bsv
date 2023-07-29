@@ -2,8 +2,10 @@ package Config;
 
 import BlueAXI :: *;
 
-typedef 3000 WAITRESET;
-typedef 10000 STOPAFTER;
+typedef 0 RANDOM_SEED;
+
+typedef 3000 WAIT_RESET;
+typedef 10000 STOP_AFTER;
 
 // Compatible with the example design
 typedef 128 TESTLENGTH;
