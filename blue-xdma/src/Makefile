@@ -14,16 +14,16 @@ BSC_FLAGS += -p +:./include
 BSC_FLAGS += -bdir $(BUILD_DIR)
 # BSC_FLAGS += -promote-warnings ALL
 
-all: clean mkXDMATestbench mkDependencies
+all: clean mkXdmaTestbench mkDependencies
 
 mkTb:
 	@bsc $(BSC_FLAGS) -g mkTb -u Top.bsv
 
-mkXDMATestbench:
-	@bsc $(BSC_FLAGS) -g mkXDMATestbench -u XDMATestbench.bsv
+mkXdmaTestbench:
+	@bsc $(BSC_FLAGS) -g mkXdmaTestbench -u XdmaTestbench.bsv
 
 mkDependencies:
-	@bluetcl ../listVlogFiles.tcl -bdir $(BUILD_DIR) mkXDMATestbench mkXDMATestbench | grep -i '\.v' | xargs -I {} cp {} $(BUILD_DIR)
+	@bluetcl ../listVlogFiles.tcl -bdir $(BUILD_DIR) mkXdmaTestbench mkXdmaTestbench | grep -i '\.v' | xargs -I {} cp {} $(BUILD_DIR)
 
 clean:
 	rm -f *.v

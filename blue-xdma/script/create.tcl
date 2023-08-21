@@ -29,7 +29,7 @@ file copy -force "./sim/xilinx_dma_pcie_ep.sv" [get_files xilinx_dma_pcie_ep.sv]
 
 # Import required files
 import_files -fileset sources_1 [list \
-  "./src/mkXDMATestbench.v" \
+  "./src/mkXdmaTestbench.v" \
 ]
 
 # Import the BSC library

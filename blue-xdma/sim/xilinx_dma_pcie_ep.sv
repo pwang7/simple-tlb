@@ -219,7 +219,7 @@ module xilinx_dma_pcie_ep #(
          .user_lnk_up(user_lnk_up)
        );
 
-  mkXDMATestbench mkXDMATestbench_i (
+  mkXdmaTestbench mkXdmaTestbench_i (
                     .axi_aclk(user_clk),
                     .axi_aresetn(user_resetn),
                     .m_axil_awready(s_axil_awready),

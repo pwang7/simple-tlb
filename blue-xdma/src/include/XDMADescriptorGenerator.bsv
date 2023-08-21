@@ -9,10 +9,10 @@ import Config :: *;
 import AXI4Slave :: *;
 
 typedef struct {
-    XDMADescriptorLength length;
-    XDMADescriptorAddressSz srcAddr;
-    XDMADescriptorAddressSz dstAddr;
-} XDMADescriptor deriving (Bits, Eq, FShow);
+    XdmaDescriptorLength length;
+    XdmaDescriptorAddressSz srcAddr;
+    XdmaDescriptorAddressSz dstAddr;
+} XdmaDescriptor deriving (Bits, Eq, FShow);
 
 typedef enum {C2H, H2C} Direction deriving(Eq, Bits, FShow);
 
@@ -22,36 +22,36 @@ typedef struct {
 } DMA_Configure deriving (Bits, Eq, FShow);
 
 (* always_ready, always_enabled *)
-interface IfcXDMAChannelFab;
+interface IfcXdmaChannelFab;
     method Bool load;
-    (* result = "src_addr" *) method XDMADescriptorAddressSz srcAddr;
-    (* result = "dst_addr" *) method XDMADescriptorAddressSz dstAddr;
-    (* result = "len" *) method XDMADescriptorLength len;
-    (* result = "ctl" *) method XDMADescriptorCtl ctl;
+    (* result = "src_addr" *) method XdmaDescriptorAddressSz srcAddr;
+    (* result = "dst_addr" *) method XdmaDescriptorAddressSz dstAddr;
+    (* result = "len" *) method XdmaDescriptorLength len;
+    (* result = "ctl" *) method XdmaDescriptorCtl ctl;
     (* prefix = "" *) method Action ready((* port = "ready" *) Bool rdy);
 endinterface
 
 (* always_ready, always_enabled *)
-interface IfcXDMADescriptorFab;
+interface IfcXdmaDescriptorFab;
     (* prefix = "m_axil" *) interface IfcAxi4LiteMasterFab liteFab;
-    (* prefix = "c2h_dsc_byp" *) interface IfcXDMAChannelFab c2hFab;
-    (* prefix = "h2c_dsc_byp" *) interface IfcXDMAChannelFab h2cFab;
+    (* prefix = "c2h_dsc_byp" *) interface IfcXdmaChannelFab c2hFab;
+    (* prefix = "h2c_dsc_byp" *) interface IfcXdmaChannelFab h2cFab;
     (* prefix = "s_axi" *) interface IfcAxi4SlaveFab axi4SlaveFab;
 endinterface
 
-interface IfcXDMADescriptor;
-    interface Put#(XDMADescriptor) c2h;
-    interface Put#(XDMADescriptor) h2c;
+interface IfcXdmaDescriptor;
+    interface Put#(XdmaDescriptor) c2h;
+    interface Put#(XdmaDescriptor) h2c;
     method Action controlDMA(DMA_Configure control);
 endinterface
 
-interface IfcXDMADescriptorGeneratorTop;
-    interface IfcXDMADescriptorFab fab;
-    interface IfcXDMADescriptor dsc;
+interface IfcXdmaDescriptorGeneratorTop;
+    interface IfcXdmaDescriptorFab fab;
+    interface IfcXdmaDescriptor dsc;
     interface IfcAxi4SlaveData data;
 endinterface
 
-module mkXDMADescriptorGenerator(IfcXDMADescriptorGeneratorTop);
+module mkXdmaDescriptorGenerator(IfcXdmaDescriptorGeneratorTop);
 
     let axi4LiteMaster <- mkAXI4LiteMaster;
     let axi4Slave <- mkAxi4Slave;
@@ -60,21 +60,21 @@ module mkXDMADescriptorGenerator(IfcXDMADescriptorGeneratorTop);
     Reg#(Bool) h2cReadyAfterLoadReg <- mkReg(False);
     Reg#(Bool) controlError <- mkReg(False);
 
-    FIFOF#(XDMADescriptor) c2hDescriptorFifo <- mkFIFOF;
-    FIFOF#(XDMADescriptor) h2cDescriptorFifo <- mkFIFOF;
+    FIFOF#(XdmaDescriptor) c2hDescriptorFifo <- mkFIFOF;
+    FIFOF#(XdmaDescriptor) h2cDescriptorFifo <- mkFIFOF;
 
     Reg#(Axi4LiteMasterWriteRsp) writeResponse <- mkReg(unpack(0));
 
-    Wire#(XDMADescriptorAddressSz) c2hDscBypSrcAddr <- mkDWire(0);
-    Wire#(XDMADescriptorAddressSz) c2hDscBypDstAddr <- mkDWire(0);
-    Wire#(XDMADescriptorLength) c2hDscBypLen <- mkDWire(0);
-    Wire#(XDMADescriptorCtl) c2hDscBypEn <- mkDWire(0);
+    Wire#(XdmaDescriptorAddressSz) c2hDscBypSrcAddr <- mkDWire(0);
+    Wire#(XdmaDescriptorAddressSz) c2hDscBypDstAddr <- mkDWire(0);
+    Wire#(XdmaDescriptorLength) c2hDscBypLen <- mkDWire(0);
+    Wire#(XdmaDescriptorCtl) c2hDscBypEn <- mkDWire(0);
     Wire#(Bool) c2hDscBypReady <- mkBypassWire;
 
-    Wire#(XDMADescriptorAddressSz) h2cDscBypSrcAddr <- mkDWire(0);
-    Wire#(XDMADescriptorAddressSz) h2cDscBypDstAddr <- mkDWire(0);
-    Wire#(XDMADescriptorLength) h2cDscBypLen <- mkDWire(0);
-    Wire#(XDMADescriptorCtl) h2cDscBypCtl <- mkDWire(0);
+    Wire#(XdmaDescriptorAddressSz) h2cDscBypSrcAddr <- mkDWire(0);
+    Wire#(XdmaDescriptorAddressSz) h2cDscBypDstAddr <- mkDWire(0);
+    Wire#(XdmaDescriptorLength) h2cDscBypLen <- mkDWire(0);
+    Wire#(XdmaDescriptorCtl) h2cDscBypCtl <- mkDWire(0);
     Wire#(Bool) h2cDscBypReady <- mkBypassWire;
 
     rule clearWriteResponse;
@@ -129,9 +129,9 @@ module mkXDMADescriptorGenerator(IfcXDMADescriptorGeneratorTop);
         endaction;
     endfunction
 
-    interface fab = IfcXDMADescriptorFab {
+    interface fab = IfcXdmaDescriptorFab {
         liteFab: axi4LiteMaster.fab,
-        c2hFab: IfcXDMAChannelFab {
+        c2hFab: IfcXdmaChannelFab {
             load: c2hDescriptorFifo.notEmpty,
             srcAddr: c2hDscBypSrcAddr,
             dstAddr: c2hDscBypDstAddr,
@@ -139,7 +139,7 @@ module mkXDMADescriptorGenerator(IfcXDMADescriptorGeneratorTop);
             ctl: c2hDscBypEn,
             ready: c2hDscBypReady._write
         },
-        h2cFab: IfcXDMAChannelFab {
+        h2cFab: IfcXdmaChannelFab {
             load: h2cDescriptorFifo.notEmpty,
             srcAddr: h2cDscBypSrcAddr,
             dstAddr: h2cDscBypDstAddr,
@@ -149,7 +149,7 @@ module mkXDMADescriptorGenerator(IfcXDMADescriptorGeneratorTop);
         },
         axi4SlaveFab: axi4Slave.fab
     };
-    interface dsc = IfcXDMADescriptor {
+    interface dsc = IfcXdmaDescriptor {
         c2h: toPut(c2hDescriptorFifo),
         h2c: toPut(h2cDescriptorFifo),
         controlDMA: controlDMA

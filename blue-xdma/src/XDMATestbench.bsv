@@ -5,29 +5,29 @@ import BlueAXI :: *;
 import BlueLib :: *;
 import AXI4LiteMaster :: *;
 import AXI4Slave :: *;
-import XDMADescriptorGenerator :: *;
+import XdmaDescriptorGenerator :: *;
 import StmtFSM :: *;
 import Counter :: *;
 import BRAMFIFO::*;
 import Config :: *;
 
 interface IfcTop;
-    (* prefix = "" *) interface IfcXDMADescriptorFab fab;
+    (* prefix = "" *) interface IfcXdmaDescriptorFab fab;
 endinterface
 
 (* synthesize, clock_prefix = "axi_aclk", reset_prefix = "axi_aresetn" *)
-module mkXDMATestbench(IfcTop);
-    let c2hTestDescriptor = XDMADescriptor {
+module mkXdmaTestbench(IfcTop);
+    let c2hTestDescriptor = XdmaDescriptor {
         length: fromInteger(valueOf(TESTLENGTH)),
         srcAddr: fromInteger(valueOf(TESTSRCADDR)),
         dstAddr: fromInteger(valueOf(TESTDSTADDR) + valueOf(RANDOM_SEED))
     };
-    let h2cTestDescriptor = XDMADescriptor {
+    let h2cTestDescriptor = XdmaDescriptor {
         length: fromInteger(valueOf(TESTLENGTH)),
         srcAddr: fromInteger(valueOf(TESTDSTADDR) + valueOf(RANDOM_SEED)),
         dstAddr: fromInteger(valueOf(TESTSRCADDR))
     };
-    let xdmaDescriptorGenerator <- mkXDMADescriptorGenerator;
+    let xdmaDescriptorGenerator <- mkXdmaDescriptorGenerator;
 
     Reg#(Maybe#(AXI4_Read_Rq#(AXI4_SLAVE_ADDRSz, AXI4_SLAVE_IDSz, AXI4_SLAVE_USRSz))) readReq <- mkReg(tagged Invalid);
     Reg#(Maybe#(AXI4_Write_Rq_Addr#(AXI4_SLAVE_ADDRSz, AXI4_SLAVE_IDSz, AXI4_SLAVE_USRSz))) writeReq <- mkReg(tagged Invalid);
